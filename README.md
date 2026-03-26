@@ -10,7 +10,7 @@ A scalable code analysis platform integrated with GitHub that evaluates code qua
 
 ## 🛠 Tech Stack
 - Backend: Node.js, Express
-- Frontend: React
+- Frontend: React ,TypeScript,TailwindCSS
 - Database: PostgreSQL
 - Queue: Redis
 
