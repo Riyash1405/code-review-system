@@ -1,1 +1,0 @@
-// smell.analyzer.js

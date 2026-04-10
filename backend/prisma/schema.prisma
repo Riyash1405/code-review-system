@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String       @id @default(uuid())
+  githubId        String       @unique
+  username        String
+  avatarUrl       String?
+  accessToken     String
+  geminiApiKey    String?
+  useLlmForReview Boolean      @default(false)
+  repositories    Repository[]
+  createdAt       DateTime     @default(now())
+}
+
+model Repository {
+  id            String            @id @default(uuid())
+  githubRepoId  Int               @unique
+  name          String
+  fullName      String
+  ownerId       String
+  owner         User              @relation(fields: [ownerId], references: [id])
+  commits       Commit[]
+  jobs          Job[]
+  webhookId     String?
+  createdAt     DateTime          @default(now())
+}
+
+model Commit {
+  id              String            @id @default(uuid())
+  repositoryId    String
+  repository      Repository        @relation(fields: [repositoryId], references: [id])
+  sha             String            @unique
+  message         String
+  author          String
+  analysisResult  AnalysisResult?
+  createdAt       DateTime          @default(now())
+}
+
+model Job {
+  id           String     @id @default(uuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+  commitSha    String
+  status       String     // PENDING, RUNNING, COMPLETED, FAILED
+  type         String     // FULL_REPO, PR
+  prNumber     Int?
+  error        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model AnalysisResult {
+  id           String   @id @default(uuid())
+  commitId     String   @unique
+  commit       Commit   @relation(fields: [commitId], references: [id])
+  score        Float
+  issues       Json
+  summary      String
+  createdAt    DateTime @default(now())
+}
