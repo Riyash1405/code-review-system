@@ -14,7 +14,7 @@ export const analysisWorker = new Worker(
 
     const dbJob = await db.job.findUnique({
       where: { id: job.data.dbJobId },
-      include: { repository: { include: { owner: true } } }
+      include: { repository: { include: { githubAccount: { include: { user: true } } } } }
     });
 
     if (!dbJob) return;
@@ -25,7 +25,9 @@ export const analysisWorker = new Worker(
     });
 
     try {
-      const accessToken = dbJob.repository.owner.accessToken;
+      const ghAccount = dbJob.repository.githubAccount;
+      const accessToken = ghAccount.accessToken;
+      const userSettings = ghAccount.user;
       const owner = dbJob.repository.fullName.split('/')[0];
       const repo = dbJob.repository.name;
 
@@ -36,8 +38,9 @@ export const analysisWorker = new Worker(
       // 2. Analyze Code
       const analyzer = new CodeAnalyzer();
       const analysisOptions = {
-        useLlm: dbJob.repository.owner.useLlmForReview,
-        apiKey: dbJob.repository.owner.geminiApiKey || undefined
+        useLlm: userSettings.useLlmForReview,
+        apiKey: userSettings.geminiApiKey || undefined,
+        provider: userSettings.llmProvider || 'gemini',
       };
       const analysisResult = await analyzer.analyze(files, analysisOptions);
 
@@ -46,8 +49,8 @@ export const analysisWorker = new Worker(
         where: { sha: commitSha },
         create: {
           sha: commitSha,
-          message: 'Job Triggered Analysis Commit', // Needs webhook sync for better message later
-          author: dbJob.repository.owner.username,
+          message: 'Job Triggered Analysis Commit',
+          author: ghAccount.username,
           repositoryId: repoId,
         },
         update: {},
@@ -110,7 +113,7 @@ _Detected ${analysisResult.issues.length} total issues across standard metric ch
         create: {
           sha: commitSha,
           message: 'Failed Analysis Commit',
-          author: dbJob.repository?.owner?.username || 'Unknown',
+          author: dbJob.repository?.githubAccount?.username || 'Unknown',
           repositoryId: repoId,
         },
         update: {},

@@ -31,6 +31,22 @@
   * {
     border-color: var(--border-color);
   }
+
+  /* Force dark styling on native select/option elements */
+  select {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+  option {
+    background-color: #1a1a1a;
+    color: #ededed;
+    padding: 8px 12px;
+  }
+  option:checked,
+  option:hover {
+    background-color: #0d9488;
+    color: white;
+  }
 }
 
 @layer utilities {

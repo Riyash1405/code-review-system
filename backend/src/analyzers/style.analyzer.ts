@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { detectLanguage, supportsAst, STYLE_PATTERNS } from './patterns.js';
 
 export interface StyleIssue {
   type: 'STYLE';
@@ -9,36 +10,50 @@ export interface StyleIssue {
 
 export class StyleAnalyzer {
   analyze(fileName: string, sourceText: string): StyleIssue[] {
+    const lang = detectLanguage(fileName);
     const issues: StyleIssue[] = [];
-    const sourceFile = ts.createSourceFile(
-      fileName,
-      sourceText,
-      ts.ScriptTarget.Latest,
-      true
-    );
+
+    // Universal: check for TODO/FIXME in comments
+    const lines = sourceText.split('\n');
+    lines.forEach((lineText, idx) => {
+      if (lineText.includes('TODO') || lineText.includes('FIXME')) {
+        issues.push({
+          type: 'STYLE', file: fileName, line: idx + 1,
+          message: 'Unresolved TODO or FIXME found in comments.',
+        });
+      }
+    });
+
+    if (supportsAst(lang)) {
+      issues.push(...this.analyzeWithAst(fileName, sourceText));
+    } else {
+      issues.push(...this.analyzeWithPatterns(fileName, sourceText, lang));
+    }
+
+    return issues;
+  }
+
+  /**
+   * AST-based style analysis for JavaScript/TypeScript
+   */
+  private analyzeWithAst(fileName: string, sourceText: string): StyleIssue[] {
+    const issues: StyleIssue[] = [];
+    const sourceFile = ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true);
 
     const checkStyle = (node: ts.Node) => {
-      // Check variable/function naming styles (camelCase)
+      // Variable naming — flag kebab-case
       if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
         const name = node.name.text;
-        // Simple heuristic: variables shouldn't start with uppercase unless they are components or classes
-        // but we'll flag completely uppercase identifiers not at top level (consts)
-        if (name === name.toUpperCase() && name.includes('_') && node.parent.parent.kind !== ts.SyntaxKind.VariableStatement) {
-           // Not entirely accurate without full type tree, keep simple for this analyzer
-        } else if (/^[A-Z][a-z0-9]/.test(name)) {
-           // Might be a React component, class or PascalCase, ignore to prevent false positives.
-        } else if (name.includes('-')) {
+        if (name.includes('-')) {
           const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
           issues.push({
-            type: 'STYLE',
-            file: fileName,
-            line: line + 1,
+            type: 'STYLE', file: fileName, line: line + 1,
             message: `Variable '${name}' uses kebab-case. Prefer camelCase for JavaScript variables.`,
           });
         }
       }
 
-      // Check for console.log
+      // console.log check
       if (
         ts.isCallExpression(node) &&
         ts.isPropertyAccessExpression(node.expression) &&
@@ -48,43 +63,46 @@ export class StyleAnalyzer {
       ) {
         const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
         issues.push({
-          type: 'STYLE',
-          file: fileName,
-          line: line + 1,
-          message: `Avoid using console.log in production code.`,
+          type: 'STYLE', file: fileName, line: line + 1,
+          message: 'Avoid using console.log in production code.',
         });
       }
 
-      // Check for explicit 'any' type usage
+      // Explicit 'any' type usage
       if (node.kind === ts.SyntaxKind.AnyKeyword) {
         const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
         issues.push({
-          type: 'STYLE',
-          file: fileName,
-          line: line + 1,
-          message: `Avoid using 'any' type. Define specific types or use 'unknown'.`,
+          type: 'STYLE', file: fileName, line: line + 1,
+          message: "Avoid using 'any' type. Define specific types or use 'unknown'.",
         });
       }
 
       ts.forEachChild(node, checkStyle);
     };
 
-    // Check for TODOs in comments safely using a simple string scan
+    checkStyle(sourceFile);
+    return issues;
+  }
+
+  /**
+   * Regex-based style analysis for Python, Java, C++, Go, Ruby
+   */
+  private analyzeWithPatterns(fileName: string, sourceText: string, lang: string): StyleIssue[] {
+    const issues: StyleIssue[] = [];
     const lines = sourceText.split('\n');
-    lines.forEach((lineText, idx) => {
-      if (lineText.includes('//') || lineText.includes('/*') || lineText.includes('*')) {
-        if (lineText.includes('TODO') || lineText.includes('FIXME')) {
+    const patterns = STYLE_PATTERNS[lang as keyof typeof STYLE_PATTERNS] || [];
+
+    for (let i = 0; i < lines.length; i++) {
+      for (const pattern of patterns) {
+        if (pattern.regex.test(lines[i])) {
           issues.push({
-            type: 'STYLE',
-            file: fileName,
-            line: idx + 1,
-            message: `Unresolved TODO or FIXME found in comments.`,
+            type: 'STYLE', file: fileName, line: i + 1,
+            message: pattern.message,
           });
         }
       }
-    });
+    }
 
-    checkStyle(sourceFile);
     return issues;
   }
 }

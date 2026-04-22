@@ -77,7 +77,8 @@ export const Dashboard: React.FC = () => {
 
         {!repositories?.length && (
           <div className="col-span-full py-12 text-center text-gray-500 border border-dashed border-border-color rounded-xl">
-            No repositories found on your GitHub account.
+            <div className="text-3xl mb-2">📦</div>
+            No repositories found. Connect a GitHub account in <a href="/settings" className="text-primary-500 hover:underline">Settings</a> to get started.
           </div>
         )}
       </div>

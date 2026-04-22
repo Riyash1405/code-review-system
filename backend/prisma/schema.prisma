@@ -1,7 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Prisma Schema — Phase 10: Email Auth + Multi-GitHub Account Linking
 
 generator client {
   provider = "prisma-client-js"
@@ -12,29 +9,88 @@ datasource db {
   provider = "postgresql"
 }
 
+// User account — identified by email, not GitHub
 model User {
-  id              String       @id @default(uuid())
-  githubId        String       @unique
-  username        String
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String?          // null for users who signed up via GitHub quick-start only
+  displayName     String
   avatarUrl       String?
-  accessToken     String
   geminiApiKey    String?
-  useLlmForReview Boolean      @default(false)
-  repositories    Repository[]
-  createdAt       DateTime     @default(now())
+  llmProvider     String           @default("gemini")
+  useLlmForReview Boolean          @default(false)
+  githubAccounts  GitHubAccount[]
+  orgMemberships  OrgMember[]
+  createdAt       DateTime         @default(now())
+}
+
+// Linked GitHub account — one User can have many
+model GitHubAccount {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  githubId      String       @unique
+  username      String
+  avatarUrl     String?
+  accessToken   String
+  isPrimary     Boolean      @default(false)
+  repositories  Repository[]
+  connectedAt   DateTime     @default(now())
+
+  @@unique([userId, githubId])
+}
+
+model Organization {
+  id           String      @id @default(cuid())
+  name         String      @unique
+  avatarUrl    String?
+  createdAt    DateTime    @default(now())
+  members      OrgMember[]
+  repositories OrgRepository[]
+}
+
+model OrgMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MemberRole   @default(MEMBER)
+  joinedAt       DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model OrgRepository {
+  id             String       @id @default(cuid())
+  organizationId String
+  repositoryId   String
+  addedAt        DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  repository     Repository   @relation(fields: [repositoryId], references: [id])
+
+  @@unique([organizationId, repositoryId])
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
 }
 
 model Repository {
-  id            String            @id @default(uuid())
-  githubRepoId  Int               @unique
-  name          String
-  fullName      String
-  ownerId       String
-  owner         User              @relation(fields: [ownerId], references: [id])
-  commits       Commit[]
-  jobs          Job[]
-  webhookId     String?
-  createdAt     DateTime          @default(now())
+  id               String            @id @default(uuid())
+  githubRepoId     Int               @unique
+  name             String
+  fullName         String
+  githubAccountId  String
+  githubAccount    GitHubAccount     @relation(fields: [githubAccountId], references: [id])
+  commits          Commit[]
+  jobs             Job[]
+  orgLinks         OrgRepository[]
+  webhookId        String?
+  createdAt        DateTime          @default(now())
 }
 
 model Commit {
@@ -53,8 +109,8 @@ model Job {
   repositoryId String
   repository   Repository @relation(fields: [repositoryId], references: [id])
   commitSha    String
-  status       String     // PENDING, RUNNING, COMPLETED, FAILED
-  type         String     // FULL_REPO, PR
+  status       String
+  type         String
   prNumber     Int?
   error        String?
   createdAt    DateTime   @default(now())

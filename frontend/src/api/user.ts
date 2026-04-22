@@ -15,6 +15,7 @@ api.interceptors.request.use((config) => {
 export interface UserSettings {
   useLlmForReview: boolean;
   geminiApiKey: string | null;
+  llmProvider: string; // 'gemini' | 'openai' | 'anthropic' | 'groq'
 }
 
 export const fetchUserSettings = async (): Promise<UserSettings> => {

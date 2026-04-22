@@ -13,6 +13,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Auto-logout on 401 responses
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('code_review_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export interface Repository {
   id: number;
   name: string;
@@ -39,14 +51,24 @@ export interface GitCommit {
   } | null;
 }
 
+export interface NotificationItem {
+  id: string;
+  score: number;
+  summary: string;
+  createdAt: string;
+  commitSha: string;
+  repoName: string;
+  repoFullName: string;
+}
+
 export const fetchRepositories = async (): Promise<Repository[]> => {
   const res = await api.get('/repos');
   return res.data.repos;
 };
 
-export const fetchRepositoryDetails = async (owner: string, repo: string, nocache: boolean = false) => {
-  const url = nocache ? `/repos/${owner}/${repo}?nocache=true` : `/repos/${owner}/${repo}`;
-  const res = await api.get(url);
+export const fetchRepositoryDetails = async (owner: string, repo: string) => {
+  const ts = new Date().getTime();
+  const res = await api.get(`/repos/${owner}/${repo}?t=${ts}`);
   return res.data;
 };
 
@@ -60,8 +82,12 @@ export const fetchAnalysisResult = async (owner: string, repo: string, commitSha
   return res.data;
 };
 
-export const triggerRepoAnalysis = async (owner: string, repo: string, commitSha?: string) => {
-  const res = await api.post(`/repos/${owner}/${repo}/analyze`, { commitSha });
+export const triggerRepoAnalysis = async (owner: string, repo: string, commitSha?: string, force: boolean = false) => {
+  const res = await api.post(`/repos/${owner}/${repo}/analyze`, { commitSha, force });
   return res.data;
 };
 
+export const fetchRecentNotifications = async (): Promise<NotificationItem[]> => {
+  const res = await api.get('/repos/notifications/recent');
+  return res.data.analyses;
+};
