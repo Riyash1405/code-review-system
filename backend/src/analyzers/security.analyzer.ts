@@ -1,3 +1,6 @@
+import { detectLanguage, supportsAst, SECURITY_PATTERNS } from './patterns.js';
+import type { SecurityPattern } from './patterns.js';
+
 export interface SecurityIssue {
   type: 'SECURITY';
   file: string;
@@ -10,27 +13,26 @@ export class SecurityAnalyzer {
   analyze(fileName: string, sourceText: string): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
     const lines = sourceText.split('\n');
-
-    const patterns = [
-      { regex: /(password|secret|token|key)\s*[:=]\s*['"][a-zA-Z0-9_-]{8,}['"]/i, danger: 'high', desc: 'Possible hardcoded secret or token detected.' },
-      { regex: /eval\s*\(/i, danger: 'critical', desc: 'Usage of eval() is a major security risk.' },
-      { regex: /dangerouslySetInnerHTML/i, danger: 'high', desc: 'Usage of dangerouslySetInnerHTML can lead to XSS vulnerabilities.' }
-    ];
+    const lang = detectLanguage(fileName);
+    const patterns = SECURITY_PATTERNS[lang] || SECURITY_PATTERNS.unknown;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+      // Skip comment lines (basic heuristic for all languages)
+      const trimmed = line.trim();
+      if (trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('/*') || trimmed.startsWith('*')) {
+        continue;
+      }
+
       for (const pattern of patterns) {
         if (pattern.regex.test(line)) {
-          // Additional check: exclude obvious test data or non-code
-          if (!line.includes('//') && !line.trim().startsWith('/*')) {
-             issues.push({
-              type: 'SECURITY',
-              file: fileName,
-              line: i + 1,
-              message: pattern.desc,
-              severity: pattern.danger as 'high' | 'critical'
-            });
-          }
+          issues.push({
+            type: 'SECURITY',
+            file: fileName,
+            line: i + 1,
+            message: pattern.message,
+            severity: pattern.severity,
+          });
         }
       }
     }

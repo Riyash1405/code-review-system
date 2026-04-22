@@ -4,6 +4,7 @@ export interface Issue {
   line: number;
   message: string;
   severity?: string;
+  suggestion?: string;
   score?: number;
 }
 

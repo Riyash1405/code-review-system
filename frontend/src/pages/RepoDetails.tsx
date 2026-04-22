@@ -14,11 +14,15 @@ export const RepoDetails: React.FC = () => {
   const [isPolling, setIsPolling] = useState(false);
   const [analyzingCommit, setAnalyzingCommit] = useState<string | null>(null);
 
+  // Stable query key — never changes with polling state
+  const repoQueryKey = ['repository', owner, repo];
+
   // Fetch repository details + past analyses
   const { data, isLoading, error } = useQuery({
-    queryKey: ['repository', owner, repo, isPolling],
-    queryFn: () => fetchRepositoryDetails(owner!, repo!, isPolling),
+    queryKey: repoQueryKey,
+    queryFn: () => fetchRepositoryDetails(owner!, repo!),
     refetchInterval: isPolling ? 3000 : false,
+    staleTime: 0, // Always refetch on mount to get latest results
   });
 
   // Fetch commit history from GitHub
@@ -27,22 +31,19 @@ export const RepoDetails: React.FC = () => {
     queryFn: () => fetchRepoCommits(owner!, repo!),
   });
 
-  // Trigger analysis mutation — now accepts a specific commitSha
+  // Trigger analysis mutation
   const mutation = useMutation({
     mutationFn: (commitSha?: string) => triggerRepoAnalysis(owner!, repo!, commitSha),
     onSuccess: (data: any) => {
       if (data.cached) {
-        // Result was already cached — just refresh the UI immediately
+        // Result was already cached — refresh UI immediately
         setAnalyzingCommit(null);
-        queryClient.invalidateQueries({ queryKey: ['repository', owner, repo] });
+        queryClient.invalidateQueries({ queryKey: repoQueryKey });
         return;
       }
+      // Start polling for result
+      setAnalyzingCommit(data.commitSha);
       setIsPolling(true);
-      setTimeout(() => {
-        setIsPolling(false);
-        setAnalyzingCommit(null);
-        queryClient.invalidateQueries({ queryKey: ['repository', owner, repo] });
-      }, 30000);
     },
     onError: (err) => {
       console.error('Trigger analysis failed', err);
@@ -51,15 +52,27 @@ export const RepoDetails: React.FC = () => {
     }
   });
 
-  // Stop polling when a new analysis result comes in
+  // Stop polling when a new analysis result arrives matching our commit
   useEffect(() => {
-    if (isPolling && data?.recentAnalyses?.length > 0) {
-      const latest = data.recentAnalyses[0];
-      if (latest && latest.commit?.sha === analyzingCommit) {
+    if (!isPolling) return;
+
+    if (data?.recentAnalyses?.length > 0) {
+      const analyzedShasInResults = new Set((data.recentAnalyses || []).map((a: any) => a.commit.sha));
+      if (analyzingCommit && analyzedShasInResults.has(analyzingCommit)) {
         setIsPolling(false);
         setAnalyzingCommit(null);
+        return;
       }
     }
+
+    // Safety: stop polling after 60s
+    const timeout = setTimeout(() => {
+      setIsPolling(false);
+      setAnalyzingCommit(null);
+      queryClient.invalidateQueries({ queryKey: repoQueryKey });
+    }, 60000);
+
+    return () => clearTimeout(timeout);
   }, [data, isPolling, analyzingCommit]);
 
   const handleAnalyzeCommit = (sha: string) => {
@@ -77,13 +90,13 @@ export const RepoDetails: React.FC = () => {
 
   const { details, recentAnalyses, isTracked } = data;
 
-  // Prepare chart data (reverse to show chronological order)
+  // Chart data (chronological)
   const chartData = (recentAnalyses || []).slice().reverse().map((a: any) => ({
     name: a.commit.sha.substring(0, 7),
     score: a.score,
   }));
 
-  // Build a lookup set of analyzed commit SHAs for quick reference
+  // Lookup set of analyzed commits
   const analyzedShas = new Set((recentAnalyses || []).map((a: any) => a.commit.sha));
 
   return (
@@ -184,7 +197,7 @@ export const RepoDetails: React.FC = () => {
         </Card>
       </div>
 
-      {/* Commit History — Select and Analyze Any Commit */}
+      {/* Commit History */}
       <Card className="glass">
         <CardHeader>
           <CardTitle>Commit History</CardTitle>

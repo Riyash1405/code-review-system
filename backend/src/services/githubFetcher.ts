@@ -37,15 +37,27 @@ export class GitHubFetcher {
           const path = entry.entryName;
           
           // Allow any source-code like files, exclude binary formats and large generated artifacts
-          const isBinaryOrIgnored = path.match(/\.(png|jpg|jpeg|gif|ico|svg|zip|tar|gz|pdf|woff|woff2|ttf|eot|mp4|mp3|exe|dll|so|dylib|bin)$/i) || 
+          const isBinaryOrIgnored = path.match(/\.(png|jpg|jpeg|gif|ico|svg|zip|tar|gz|pdf|woff|woff2|ttf|eot|mp4|mp3|exe|dll|so|dylib|bin|class|jar|war|pyc|pyo|o|obj)$/i) || 
                                     path.includes('node_modules/') || 
                                     path.includes('venv/') ||
                                     path.includes('.git/') ||
                                     path.includes('__pycache__/') ||
                                     path.includes('dist/') || 
                                     path.includes('build/') ||
+                                    path.includes('.next/') ||
+                                    path.includes('.nuxt/') ||
+                                    path.includes('target/') ||       // Java/Maven/Gradle build output
+                                    path.includes('.gradle/') ||
+                                    path.includes('.idea/') ||
+                                    path.includes('.vscode/') ||
+                                    path.includes('vendor/') ||       // Go/PHP vendor
+                                    path.includes('coverage/') ||
                                     path.includes('.min.js') ||
-                                    path.includes('.min.css');
+                                    path.includes('.min.css') ||
+                                    path.includes('package-lock.json') ||
+                                    path.includes('yarn.lock') ||
+                                    path.includes('pnpm-lock.yaml') ||
+                                    path.includes('.lock');
 
           if (!isBinaryOrIgnored) {
             files.push({

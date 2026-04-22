@@ -14,8 +14,10 @@ router.use(authenticate);
 
 import repoRoutes from './repo.routes.js';
 import userRoutes from './user.routes.js';
+import orgRoutes from './org.routes.js';
 router.use('/repos', repoRoutes);
 router.use('/users', userRoutes);
+router.use('/orgs', orgRoutes);
 
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', user: (req.user as any)?.username });

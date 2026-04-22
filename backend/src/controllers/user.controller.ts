@@ -11,6 +11,7 @@ export const getUserSettings = async (req: Request, res: Response) => {
       select: {
         useLlmForReview: true,
         geminiApiKey: true,
+        llmProvider: true,
       }
     });
 
@@ -21,6 +22,7 @@ export const getUserSettings = async (req: Request, res: Response) => {
     res.json({
       useLlmForReview: dbUser.useLlmForReview,
       geminiApiKey: dbUser.geminiApiKey,
+      llmProvider: dbUser.llmProvider,
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
@@ -33,13 +35,14 @@ export const updateUserSettings = async (req: Request, res: Response) => {
     const user = req.user as any;
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { useLlmForReview, geminiApiKey } = req.body;
+    const { useLlmForReview, geminiApiKey, llmProvider } = req.body;
 
     const updatedUser = await db.user.update({
       where: { id: user.id },
       data: {
         useLlmForReview,
         geminiApiKey,
+        llmProvider,
       },
     });
 
