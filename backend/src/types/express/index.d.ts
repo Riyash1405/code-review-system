@@ -1,7 +1,8 @@
-import { User as PrismaUser } from '../../generated/prisma';
+import type { AuthenticatedUser } from '../index.js';
 
 declare global {
   namespace Express {
-    export interface User extends PrismaUser {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    interface User extends AuthenticatedUser {}
   }
 }

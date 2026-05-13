@@ -1,5 +1,6 @@
 import { createProvider } from './providers/factory.js';
 import { Issue } from './scoring.service.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * LLM Analyzer orchestrator.
@@ -21,9 +22,10 @@ export class LlmAnalyzer {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private isRetryableError(error: any): boolean {
-    const msg = (error.message || '').toLowerCase();
-    const status = error.status || error.statusCode || 0;
+  private isRetryableError(error: unknown): boolean {
+    const err = error as Record<string, unknown>;
+    const msg = (typeof err?.message === 'string' ? err.message : '').toLowerCase();
+    const status = Number(err?.status || err?.statusCode || 0);
     return (
       status === 429 || status === 503 ||
       msg.includes('quota') || msg.includes('rate') ||
@@ -32,40 +34,44 @@ export class LlmAnalyzer {
     );
   }
 
-  private extractRetryDelay(error: any): number {
-    const msg = error.message || '';
+  private extractRetryDelay(error: unknown): number {
+    const err = error as Record<string, unknown>;
+    const msg = typeof err?.message === 'string' ? err.message : '';
     const match = msg.match(/retry\s+in\s+([\d.]+)s/i);
     return match ? Math.ceil(parseFloat(match[1]) * 1000) : 0;
   }
 
-  private extractCleanError(error: any): string {
-    const msg = error.message || 'Unknown LLM Error';
+  private extractCleanError(error: unknown): string {
+    const err = error as Record<string, unknown>;
+    const msg = typeof err?.message === 'string' ? err.message : 'Unknown LLM Error';
     try {
       if (msg.includes('{') && msg.includes('}')) {
         const json = JSON.parse(msg.substring(msg.indexOf('{'), msg.lastIndexOf('}') + 1));
         if (json.error?.message) return json.error.message;
       }
-    } catch (e) {}
+    } catch (e) {
+      // ignore parse error
+    }
     return msg;
   }
 
   async analyze(files: { path: string; content: string }[]): Promise<{ score: number; summary: string; issues: Issue[] }> {
     const llmProvider = createProvider(this.provider, this.apiKey);
-    console.log(`Using AI provider: ${llmProvider.name}`);
+    logger.info(`Using AI provider: ${llmProvider.name}`);
 
-    let lastError: any = null;
+    let lastError: unknown = null;
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        console.log(`${llmProvider.name} attempt ${attempt}/${this.maxRetries}...`);
+        logger.info(`${llmProvider.name} attempt ${attempt}/${this.maxRetries}...`);
         return await llmProvider.analyze(files);
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
-        console.error(`${llmProvider.name} attempt ${attempt} failed:`, this.extractCleanError(error));
+        logger.error({ err: error }, `${llmProvider.name} attempt ${attempt} failed: ${this.extractCleanError(error)}`);
 
         if (this.isRetryableError(error) && attempt < this.maxRetries) {
           const apiDelay = this.extractRetryDelay(error);
           const backoffDelay = apiDelay > 0 ? apiDelay : (15000 * Math.pow(2, attempt - 1));
-          console.log(`Rate limited. Waiting ${Math.round(backoffDelay / 1000)}s before retry...`);
+          logger.info(`Rate limited. Waiting ${Math.round(backoffDelay / 1000)}s before retry...`);
           await this.sleep(backoffDelay);
           continue;
         }

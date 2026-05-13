@@ -4,6 +4,8 @@ import { LandingPage } from './pages/LandingPage';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { AuthCallback } from './pages/AuthCallback';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { RepoDetails } from './pages/RepoDetails';
 import { AnalysisView } from './pages/AnalysisView';
@@ -51,6 +53,8 @@ const App: React.FC = () => {
       <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+      <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       
       {/* Protected App Routes */}

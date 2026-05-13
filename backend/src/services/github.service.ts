@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/logger.js';
 
 export class GitHubService {
   private accessToken: string;
@@ -26,7 +27,7 @@ export class GitHubService {
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch repositories:', error);
+      logger.error({ err: error }, 'Failed to fetch repositories');
       throw new Error('Failed to fetch repositories from GitHub');
     }
   }
@@ -38,7 +39,7 @@ export class GitHubService {
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch repository:', error);
+      logger.error({ err: error }, 'Failed to fetch repository');
       throw new Error('Failed to fetch repository details from GitHub');
     }
   }
@@ -53,7 +54,7 @@ export class GitHubService {
       });
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch repository commits:', error);
+      logger.error({ err: error }, 'Failed to fetch repository commits');
       throw new Error('Failed to fetch commits from GitHub');
     }
   }

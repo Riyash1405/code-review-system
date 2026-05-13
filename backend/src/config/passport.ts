@@ -1,41 +1,53 @@
 import passport from 'passport';
-import { Strategy as GitHubStrategy } from 'passport-github2';
-import db from './db';
+import { Strategy as GitHubStrategy, Profile } from 'passport-github2';
+import { env } from './env.js';
+import db from './db.js';
+import { logger } from '../utils/logger.js';
+import { encrypt } from '../utils/crypto.js';
 
 passport.use(
   new GitHubStrategy(
     {
-      clientID: process.env.GITHUB_CLIENT_ID || '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-      callbackURL: process.env.GITHUB_CALLBACK_URL || '',
+      clientID: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
+      callbackURL: env.GITHUB_CALLBACK_URL,
       scope: ['user:email', 'repo', 'read:org'],
       passReqToCallback: true,
     },
-    async (req: any, accessToken: string, refreshToken: string, profile: any, done: Function) => {
+    async (
+      req: Express.Request,
+      accessToken: string,
+      _refreshToken: string,
+      profile: Profile,
+      done: (err: Error | null, user?: Express.User | null) => void,
+    ) => {
       try {
         const githubId = String(profile.id);
         const username = profile.username || profile.displayName || '';
-        const avatarUrl = profile._json?.avatar_url || null;
-        const email = profile.emails?.[0]?.value || `${username}@github.local`;
+        const avatarUrl = (profile as unknown as Record<string, unknown>)._json
+          ? ((profile as unknown as Record<string, unknown>)._json as Record<string, string>)?.avatar_url ?? null
+          : null;
+        const email =
+          profile.emails?.[0]?.value || `${username}@github.local`;
 
         // Check if this GitHub account is already linked
         let ghAccount = await db.gitHubAccount.findUnique({
           where: { githubId },
-          include: { user: true }
+          include: { user: true },
         });
 
         if (ghAccount) {
-          // Update the token
+          // Update the token (encrypted)
           ghAccount = await db.gitHubAccount.update({
             where: { id: ghAccount.id },
-            data: { accessToken, username, avatarUrl },
-            include: { user: true }
+            data: { accessToken: encrypt(accessToken), username, avatarUrl },
+            include: { user: true },
           });
-          return done(null, { ...ghAccount.user, _ghAccountId: ghAccount.id });
+          return done(null, { ...ghAccount.user, _ghAccountId: ghAccount.id } as unknown as Express.User);
         }
 
         // Check if the currently logged-in user is linking a new account
-        const linkingUserId = req.session?.linkingUserId;
+        const linkingUserId = (req as unknown as { session?: { linkingUserId?: string } }).session?.linkingUserId;
 
         if (linkingUserId) {
           // Linking mode: add this GitHub account to existing user
@@ -45,14 +57,15 @@ passport.use(
               githubId,
               username,
               avatarUrl,
-              accessToken,
+              accessToken: encrypt(accessToken),
               isPrimary: false,
             },
-            include: { user: true }
+            include: { user: true },
           });
           // Clear the linking flag
-          delete req.session.linkingUserId;
-          return done(null, { ...newAccount.user, _ghAccountId: newAccount.id });
+          const session = (req as unknown as { session?: { linkingUserId?: string } }).session;
+          if (session) delete session.linkingUserId;
+          return done(null, { ...newAccount.user, _ghAccountId: newAccount.id } as unknown as Express.User);
         }
 
         // First-time GitHub quick-start: create User + GitHubAccount in one go
@@ -66,20 +79,21 @@ passport.use(
                 githubId,
                 username,
                 avatarUrl,
-                accessToken,
+                accessToken: encrypt(accessToken),
                 isPrimary: true,
-              }
-            }
+              },
+            },
           },
-          include: { githubAccounts: true }
+          include: { githubAccounts: true },
         });
 
-        return done(null, { ...user, _ghAccountId: user.githubAccounts[0]?.id });
+        return done(null, { ...user, _ghAccountId: user.githubAccounts[0]?.id } as unknown as Express.User);
       } catch (err) {
-        return done(err, null);
+        logger.error({ err }, 'GitHub OAuth strategy error');
+        return done(err as Error, null);
       }
-    }
-  )
+    },
+  ),
 );
 
 export default passport;

@@ -5,6 +5,7 @@ import { StyleAnalyzer } from './style.analyzer.js';
 import { SecurityAnalyzer } from './security.analyzer.js';
 import { ScoringService, Issue } from './scoring.service.js';
 import { LlmAnalyzer } from './llm.analyzer.js';
+import { logger } from '../utils/logger.js';
 
 interface AnalysisOptions {
   useLlm: boolean;
@@ -25,11 +26,11 @@ export class CodeAnalyzer {
     if (options.useLlm && options.apiKey) {
       try {
         const llmAnalyzer = new LlmAnalyzer(options.apiKey, options.provider || 'gemini');
-        console.log(`Routing analysis to ${options.provider || 'gemini'} AI Engine (with automatic fallback)...`);
+        logger.info(`Routing analysis to ${options.provider || 'gemini'} AI Engine (with automatic fallback)...`);
         return await llmAnalyzer.analyze(files);
-      } catch (llmError: any) {
-        console.warn(`⚠️ LLM analysis failed: ${llmError.message}`);
-        console.warn('⚡ Falling back to rule-based static analyzer...');
+      } catch (llmError: unknown) {
+        logger.warn({ err: llmError }, '⚠️ LLM analysis failed');
+        logger.warn('⚡ Falling back to rule-based static analyzer...');
       }
     }
 
@@ -48,7 +49,7 @@ export class CodeAnalyzer {
     }
 
     const dupIssues = this.duplicationAnalyzer.analyzeFiles(files);
-    allIssues.push(...dupIssues as Issue[]);
+    allIssues.push(...(dupIssues as Issue[]));
 
     const { score, summary } = this.scoringService.calculateScore(allIssues);
 

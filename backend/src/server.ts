@@ -1,29 +1,41 @@
-import 'dotenv/config';
-import app from './app';
-import db from './config/db';
+import { env } from './config/env.js';
+import { logger } from './utils/logger.js';
+import app from './app.js';
+import db from './config/db.js';
 import { analysisWorker } from './workers/analysisWorker.js';
 
 analysisWorker.on('ready', () => {
-  console.log('👷 Analysis Worker is ready and listening for jobs!');
+  logger.info('👷 Analysis Worker is ready and listening for jobs');
 });
 analysisWorker.on('error', (err) => {
-  console.error('👷 Analysis Worker encountered an error:', err);
+  logger.error({ err }, '👷 Analysis Worker encountered an error');
 });
 
-const PORT = 3001;
+const PORT = env.PORT;
 
 const startServer = async () => {
   try {
     await db.$connect();
-    console.log('✅ Connected to the database successfully');
+    logger.info('✅ Connected to the database successfully');
 
     app.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
+      logger.info(`🚀 Server is running on port ${PORT}`);
     });
   } catch (error) {
-    console.error('❌ Failed to connect to the database:', error);
+    logger.fatal({ err: error }, '❌ Failed to connect to the database');
     process.exit(1);
   }
 };
+
+// Graceful shutdown
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received — shutting down gracefully`);
+  await analysisWorker.close();
+  await db.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
 
 startServer();

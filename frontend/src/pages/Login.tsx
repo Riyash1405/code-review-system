@@ -50,7 +50,7 @@ export const Login: React.FC = () => {
               <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">CodeReview AI</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">ICR System</h1>
           <p className="text-gray-400">Intelligent Code Analysis Platform</p>
         </div>
 
@@ -77,6 +77,11 @@ export const Login: React.FC = () => {
                 placeholder="Enter your password" required
                 className="w-full px-4 py-3 rounded-lg bg-bg-color border border-border-color text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 transition-colors"
               />
+              <div className="flex justify-end mt-1.5">
+                <Link to="/forgot-password" className="text-xs text-primary-500 hover:text-primary-400 transition-colors">
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
 
             <button

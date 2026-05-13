@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../utils/logger.js';
 import AdmZip from 'adm-zip';
 
 export interface FileData {
@@ -70,7 +71,7 @@ export class GitHubFetcher {
 
       return files;
     } catch (error) {
-      console.error(`Failed to fetch and extract source code for ${owner}/${repo}@${commitSha}:`, error);
+      logger.error({ err: error }, `Failed to fetch and extract source code for ${owner}/${repo}@${commitSha}`);
       throw new Error('Failed to fetch repository source code');
     }
   }

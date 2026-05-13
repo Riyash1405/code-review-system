@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes.js';
 import { authenticate } from '../middleware/auth.js';
+import { apiLimiter } from '../middleware/rateLimiter.js';
 
 const router = Router();
 
@@ -11,6 +12,7 @@ router.use('/webhooks', webhookRoutes);
 
 // Protect all routes below this middleware
 router.use(authenticate);
+router.use(apiLimiter);
 
 import repoRoutes from './repo.routes.js';
 import userRoutes from './user.routes.js';
@@ -20,7 +22,7 @@ router.use('/users', userRoutes);
 router.use('/orgs', orgRoutes);
 
 router.get('/health', (req, res) => {
-  res.json({ status: 'ok', user: (req.user as any)?.username });
+  res.json({ status: 'ok', user: req.user?.githubUsername });
 });
 
 export default router;
