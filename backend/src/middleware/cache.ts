@@ -1,13 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient } from 'redis';
+import { env } from '../config/env.js';
+import { logger } from '../utils/logger.js';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-export const redisClient = createClient({ url: redisUrl });
+export const redisClient = createClient({ url: env.REDIS_URL });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisClient.on('error', (err) => logger.error({ err }, 'Redis Client Error'));
 
 // Connect automatically
-redisClient.connect().catch(console.error);
+redisClient.connect().catch((err) => logger.error({ err }, 'Redis connection failed'));
 
 export const cacheMiddleware = (durationInSeconds: number) => {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -21,8 +22,7 @@ export const cacheMiddleware = (durationInSeconds: number) => {
     }
 
     // Creating a unique key based on URL and user token (so users don't see each other's repos)
-    const user = req.user as any;
-    const userId = user ? user.id : 'anonymous';
+    const userId = req.user ? req.user.id : 'anonymous';
     const key = `cache:${userId}:${req.originalUrl}`;
 
     try {
@@ -33,15 +33,17 @@ export const cacheMiddleware = (durationInSeconds: number) => {
       } else {
         // Intercept res.json to cache the response before sending
         const originalJson = res.json.bind(res);
-        res.json = (body: any) => {
+        res.json = (body: unknown) => {
           // Fire and forget caching
-          redisClient.setEx(key, durationInSeconds, JSON.stringify(body)).catch(console.error);
+          redisClient.setEx(key, durationInSeconds, JSON.stringify(body)).catch((err) =>
+            logger.error({ err }, 'Redis cache write failed'),
+          );
           return originalJson(body);
         };
         next();
       }
     } catch (error) {
-      console.error('Redis cache error:', error);
+      logger.error({ err: error }, 'Redis cache error');
       next(); // Fail silently and proceed without cache
     }
   };

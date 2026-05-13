@@ -1,6 +1,9 @@
 import { Router } from 'express';
-import { getRepositories, getRepositoryDetails, getAnalysisResult, triggerAnalysis, getCommits, getRecentAnalyses } from '../controllers/repo.controller.js';
+import { getRepositories, getRepositoryDetails, getAnalysisResult, triggerAnalysis, getCommits, getRecentAnalyses, retryJob } from '../controllers/repo.controller.js';
 import { cacheMiddleware } from '../middleware/cache.js';
+import { analysisLimiter } from '../middleware/rateLimiter.js';
+import { validate } from '../middleware/validate.js';
+import { triggerAnalysisSchema, retryJobSchema } from '../schemas/repo.schema.js';
 
 const router = Router();
 
@@ -10,6 +13,7 @@ router.get('/notifications/recent', getRecentAnalyses);
 router.get('/:owner/:repo', cacheMiddleware(300), getRepositoryDetails);
 router.get('/:owner/:repo/commits', getCommits);
 router.get('/:owner/:repo/analysis/:commitSha', getAnalysisResult);
-router.post('/:owner/:repo/analyze', triggerAnalysis);
+router.post('/:owner/:repo/analyze', analysisLimiter, validate(triggerAnalysisSchema), triggerAnalysis);
+router.post('/:owner/:repo/jobs/:jobId/retry', analysisLimiter, validate(retryJobSchema), retryJob);
 
 export default router;

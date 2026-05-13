@@ -2,8 +2,9 @@ import { Request, Response } from 'express';
 import crypto from 'crypto';
 import db from '../config/db.js';
 import { addAnalysisJob } from '../queue/analysisQueue.js';
-
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'development_secret';
+import { env } from '../config/env.js';
+import { logger } from '../utils/logger.js';
+import { timingSafeEqual } from '../utils/crypto.js';
 
 export const handleGitHubWebhook = async (req: Request, res: Response) => {
   // 1. Verify Signature
@@ -14,10 +15,10 @@ export const handleGitHubWebhook = async (req: Request, res: Response) => {
     return res.status(401).send('No signature found');
   }
 
-  const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
+  const hmac = crypto.createHmac('sha256', env.GITHUB_WEBHOOK_SECRET);
   const digest = 'sha256=' + hmac.update(JSON.stringify(req.body)).digest('hex');
 
-  if (signature !== digest) {
+  if (!timingSafeEqual(signature, digest)) {
     return res.status(401).send('Invalid signature');
   }
 
@@ -57,7 +58,7 @@ export const handleGitHubWebhook = async (req: Request, res: Response) => {
 
         return res.status(202).json({ message: 'PR review job queued', jobId: job.id });
       } catch (error) {
-        console.error('Webhook processing error:', error);
+        logger.error({ err: error }, 'Webhook processing error');
         return res.status(500).send('Internal Server Error');
       }
     }

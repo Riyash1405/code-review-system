@@ -11,17 +11,19 @@ datasource db {
 
 // User account — identified by email, not GitHub
 model User {
-  id              String           @id @default(uuid())
-  email           String           @unique
-  passwordHash    String?          // null for users who signed up via GitHub quick-start only
-  displayName     String
-  avatarUrl       String?
-  geminiApiKey    String?
-  llmProvider     String           @default("gemini")
-  useLlmForReview Boolean          @default(false)
-  githubAccounts  GitHubAccount[]
-  orgMemberships  OrgMember[]
-  createdAt       DateTime         @default(now())
+  id                String           @id @default(uuid())
+  email             String           @unique
+  passwordHash      String?          // null for users who signed up via GitHub quick-start only
+  displayName       String
+  avatarUrl         String?
+  geminiApiKey      String?
+  llmProvider       String           @default("gemini")
+  useLlmForReview   Boolean          @default(false)
+  resetToken        String?          // hashed token for password reset
+  resetTokenExpiry  DateTime?        // when the reset token expires
+  githubAccounts    GitHubAccount[]
+  orgMemberships    OrgMember[]
+  createdAt         DateTime         @default(now())
 }
 
 // Linked GitHub account — one User can have many
