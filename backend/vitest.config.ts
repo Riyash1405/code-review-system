@@ -5,7 +5,6 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/test-setup.ts'],
-    env: { NODE_ENV: 'test' },
     exclude: [
       'node_modules/**',
       'dist/**',
@@ -21,6 +20,5 @@ export default defineConfig({
         '**/*.d.ts',
       ],
     },
-    setupFiles: [],
   },
 });

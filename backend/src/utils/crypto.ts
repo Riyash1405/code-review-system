@@ -1,14 +1,19 @@
 import crypto from 'crypto';
-import { env } from '../config/env.js';
 
 const ALGORITHM = 'aes-256-gcm';
 
-// Lazy-initialized key — resolved on first use, not at module import time.
-// This ensures test-setup.ts has time to inject ENCRYPTION_KEY before it is read.
+// Lazy getter — reads process.env directly at call time.
+// We intentionally bypass the env.ts module here to avoid the circular
+// import-time dependency that causes CI failures when running tests
+// (env.ts → validateEnv() runs before setupFiles inject the dummy key).
 let _key: Buffer | null = null;
 function getKey(): Buffer {
   if (!_key) {
-    _key = Buffer.from(env.ENCRYPTION_KEY, 'hex');
+    const raw = process.env.ENCRYPTION_KEY;
+    if (!raw) {
+      throw new Error('ENCRYPTION_KEY environment variable is not set');
+    }
+    _key = Buffer.from(raw, 'hex');
   }
   return _key;
 }
