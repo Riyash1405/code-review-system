@@ -66,8 +66,15 @@ function validateEnv(): Env {
  * Validated, typed environment variables.
  * Import this instead of using process.env directly.
  *
+ * In test environments, validation is skipped so unit tests don't need
+ * a real .env file. The test-setup.ts file provides safe dummy values.
+ *
  * @example
  *   import { env } from '../config/env.js';
  *   const secret = env.JWT_SECRET;
  */
-export const env = validateEnv();
+const isTest = process.env.NODE_ENV === 'test';
+
+export const env: Env = isTest
+  ? (process.env as unknown as Env)
+  : validateEnv();
