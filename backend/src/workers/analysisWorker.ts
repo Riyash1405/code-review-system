@@ -65,13 +65,13 @@ export const analysisWorker = new Worker(
         where: { commitId: commit.id },
         update: {
           score: analysisResult.score,
-          issues: analysisResult.issues as unknown as import('@prisma/client').Prisma.InputJsonValue,
+          issues: analysisResult.issues as unknown as import('../generated/prisma/index.js').Prisma.InputJsonValue,
           summary: analysisResult.summary,
         },
         create: {
           commitId: commit.id,
           score: analysisResult.score,
-          issues: analysisResult.issues as unknown as import('@prisma/client').Prisma.InputJsonValue,
+          issues: analysisResult.issues as unknown as import('../generated/prisma/index.js').Prisma.InputJsonValue,
           summary: analysisResult.summary,
         },
       });
@@ -158,13 +158,13 @@ analysisWorker.on('failed', async (job, err) => {
           where: { commitId: commit.id },
           update: {
             score: 0,
-            issues: errorIssues as unknown as import('@prisma/client').Prisma.InputJsonValue,
+            issues: errorIssues as unknown as import('../generated/prisma/index.js').Prisma.InputJsonValue,
             summary: 'Analysis Failed after retries: ' + errorMessage,
           },
           create: {
             commitId: commit.id,
             score: 0,
-            issues: errorIssues as unknown as import('@prisma/client').Prisma.InputJsonValue,
+            issues: errorIssues as unknown as import('../generated/prisma/index.js').Prisma.InputJsonValue,
             summary: 'Analysis Failed after retries: ' + errorMessage,
           },
         });

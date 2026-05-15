@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Shield, Zap, GitBranch, BarChart3, Brain, Lock, 
+  Shield, Zap, GitBranch, BarChart3, Brain, 
   ArrowRight, Code2, Search, FileCode, Bell, 
-  ChevronRight, Star, Users, Globe, Cpu
+  ChevronRight, Star, Globe, Cpu
 } from 'lucide-react';
 
 const FEATURES = [

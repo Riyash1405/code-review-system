@@ -129,7 +129,6 @@ export const Header: React.FC = () => {
                 ) : (
                   notifications.map((n, idx) => {
                     const grade = getScoreGrade(n.score);
-                    const GradeIcon = grade.icon;
                     const isNew = new Date(n.createdAt).getTime() > parseInt(lastSeen);
 
                     return (
