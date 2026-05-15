@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "postinstall": "prisma generate",
+    "prestart": "prisma migrate deploy",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.8",
