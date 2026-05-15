@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MemberRole } from '../generated/prisma/index.js';
+import { MemberRole } from '@prisma/client';
 
 export const createOrgSchema = z.object({
   body: z.object({
