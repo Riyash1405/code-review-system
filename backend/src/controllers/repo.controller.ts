@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import { GitHubService } from '../services/github.service.js';
 import db from '../config/db.js';
-import { AnalysisResult, Commit } from '../generated/prisma/index.js';
+import { AnalysisResult, Commit } from '@prisma/client';
 import { addAnalysisJob } from '../queue/analysisQueue.js';
 import { logger } from '../utils/logger.js';
 import { NotFoundError, UnauthorizedError, ConflictError, ForbiddenError } from '../utils/errors.js';

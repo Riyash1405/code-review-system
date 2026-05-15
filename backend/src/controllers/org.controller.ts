@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import db from '../config/db.js';
 import { logger } from '../utils/logger.js';
-import { MemberRole } from '../generated/prisma/index.js';
+import { MemberRole } from '@prisma/client';
 import asyncHandler from 'express-async-handler';
 import { UnauthorizedError, ConflictError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 
