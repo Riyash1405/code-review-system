@@ -3,8 +3,15 @@ import { env } from '../config/env.js';
 
 const ALGORITHM = 'aes-256-gcm';
 
-// env.ENCRYPTION_KEY is a 64-character hex string (32 bytes)
-const ENCRYPTION_KEY = Buffer.from(env.ENCRYPTION_KEY, 'hex');
+// Lazy-initialized key — resolved on first use, not at module import time.
+// This ensures test-setup.ts has time to inject ENCRYPTION_KEY before it is read.
+let _key: Buffer | null = null;
+function getKey(): Buffer {
+  if (!_key) {
+    _key = Buffer.from(env.ENCRYPTION_KEY, 'hex');
+  }
+  return _key;
+}
 
 /**
  * Encrypts a plaintext string using AES-256-GCM.
@@ -12,7 +19,7 @@ const ENCRYPTION_KEY = Buffer.from(env.ENCRYPTION_KEY, 'hex');
  */
 export function encrypt(plaintext: string): string {
   const iv = crypto.randomBytes(12); // 96-bit IV is standard for GCM
-  const cipher = crypto.createCipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, getKey(), iv);
 
   let encrypted = cipher.update(plaintext, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -36,7 +43,7 @@ export function decrypt(encrypted: string): string {
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, ENCRYPTION_KEY, iv);
+  const decipher = crypto.createDecipheriv(ALGORITHM, getKey(), iv);
   decipher.setAuthTag(authTag);
 
   let decrypted = decipher.update(ciphertextHex, 'hex', 'utf8');
