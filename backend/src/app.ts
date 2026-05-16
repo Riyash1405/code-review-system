@@ -8,10 +8,30 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
 
-app.use(cors({
-  origin: env.FRONTEND_URL,
-  credentials: true,
-}));
+// Allowlist-based CORS — handles trailing slashes and multiple environments
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  env.FRONTEND_URL.replace(/\/$/, ''), // strip trailing slash from env var
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (Postman, mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+
+      const normalizedOrigin = origin.replace(/\/$/, '');
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(helmet());
