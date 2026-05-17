@@ -1,14 +1,8 @@
 import { Queue, QueueOptions } from 'bullmq';
-import { env } from '../config/env.js';
-
-const connection = new URL(env.REDIS_URL);
+import { redisConnection } from '../config/redis.js';
 
 const queueOptions: QueueOptions = {
-  connection: {
-    host: connection.hostname,
-    port: Number(connection.port),
-    maxRetriesPerRequest: null, // Recommended by BullMQ for robust connections
-  },
+  connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
