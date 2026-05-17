@@ -7,6 +7,20 @@ A production-grade, AI-powered code review platform that integrates with GitHub 
 ![React](https://img.shields.io/badge/React-19-61dafb)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-339933)
 ![AI](https://img.shields.io/badge/AI-Multi--Model-a855f7)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?logo=vercel)](https://code-review-system-one.vercel.app/)
+
+---
+
+## 🌐 Live Demo
+
+> **[https://code-review-system-one.vercel.app/](https://code-review-system-one.vercel.app/)**
+
+| Layer | URL |
+|-------|-----|
+| **Frontend** | [code-review-system-one.vercel.app](https://code-review-system-one.vercel.app/) |
+| **Backend API** | [code-review-system-5f08.onrender.com](https://code-review-system-5f08.onrender.com/) |
+
+> ⚠️ The backend runs on Render's **free tier** and may take 30–60 seconds to respond after a period of inactivity (cold start). Subsequent requests will be fast.
 
 ---
 
@@ -66,7 +80,8 @@ Identifies O(n²) bottlenecks, memory leaks, N+1 queries, unnecessary re-renders
 | **Cache/Queue** | Redis + BullMQ |
 | **AI Providers** | Google Gemini, OpenAI, Anthropic, Groq |
 | **Auth** | JWT (1-day expiry), GitHub OAuth 2.0, bcrypt |
-| **DevOps** | Docker Compose, Vite, tsx (dev runner) |
+| **DevOps** | Docker Compose, Vite, tsx (dev runner), Vitest, GitHub Actions CI |
+| **Deployment** | Vercel (Frontend), Render (Backend), Neon (PostgreSQL), Upstash (Redis) |
 
 ---
 
