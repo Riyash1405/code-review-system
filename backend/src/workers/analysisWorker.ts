@@ -7,8 +7,7 @@ import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { decrypt } from '../utils/crypto.js';
 import type { AnalysisOutput } from '../types/index.js';
-
-const connection = new URL(env.REDIS_URL);
+import { redisConnection } from '../config/redis.js';
 
 export const analysisWorker = new Worker(
   'analysisQueue',
@@ -115,11 +114,7 @@ _Detected ${analysisResult.issues.length} total issues across standard metric ch
     }
   },
   {
-    connection: { 
-      host: connection.hostname, 
-      port: Number(connection.port),
-      maxRetriesPerRequest: null,
-    },
+    connection: redisConnection,
     concurrency: 5,
   }
 );
